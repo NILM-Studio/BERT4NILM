@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.autograd.gradcheck import zero_gradients
+# from torch.autograd.gradcheck import zero_gradients
 from tqdm import tqdm
 
 import os
@@ -16,7 +16,7 @@ from utils import *
 import matplotlib.pyplot as plt
 
 
-torch.set_default_tensor_type(torch.DoubleTensor)
+torch.set_default_dtype(torch.double)
 
 
 class Trainer(metaclass=ABCMeta):

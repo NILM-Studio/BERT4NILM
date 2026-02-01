@@ -10,7 +10,7 @@ The csv datasets could be downloaded here: [REDD](http://redd.csail.mit.edu/) an
 We took the liberty of modifying certain appliance names to 'dishwasher', 'fridge', 'microwave', 'washing_machine' and 'kettle' in the 'labels.dat' file, see data folder
 
 
-## Training
+## Training and Testing
 
 This is the PyTorch implementation of BERT4NILM, a bidirectional encoder representations from rransformers for energy disaggregation, in this repository we provide the BERT4NILM model as well as data functions for low frequency REDD dataset / UK Dale dataset, run following command to train an initial model, hyper-parameters (as well as appliances) could be tuned in utils.py, test will run after training ends:
 
@@ -20,6 +20,7 @@ python train.py
 
 The trained model state dict will be saved under 'experiments/dataset-name/best_acc_model.pth'
 
+如果需要单独进行Testing，则在运行train.py脚本的时候，直接将train epoch设置为0。
 
 ## Performance
 
@@ -50,3 +51,10 @@ Please cite the following paper if you use our methods in your research:
 ## Acknowledgement
 
 During the implementation we base our code mostly on the [BERT-pytorch](https://github.com/codertimo/BERT-pytorch) by Junseong Kim, we are also inspired by the [BERT4Rec](https://github.com/jaywonchung/BERT4Rec-VAE-Pytorch) implementation by Jaewon Chung and [Transformers](https://github.com/huggingface/transformers) from Hugging Face. Many thanks to these authors for their great work!
+
+
+## Addition By Reader
+Chuhao Huang Personal Notes:
+对于dataset的读取，首先根据config.py找到数据根目录，然后根据'house_' + str(house_id)拼接成文件夹的名称，其中的label.bat表示
+通道对应的 appliance名称，channel_1.dat一般都是总干线功率。
+

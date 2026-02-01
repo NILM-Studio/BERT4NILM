@@ -144,6 +144,113 @@ class AbstractDataset(metaclass=ABCMeta):
         return root.joinpath(self.raw_code())
 
 
+class CSV_Dataset(AbstractDataset):
+    @classmethod
+    def code(cls):
+        return 'csv_dataset'
+
+    def load_data(self):
+        csv_root = Path(RAW_DATASET_ROOT_FOLDER)
+        
+        train_csv = csv_root.joinpath('train.csv')
+        val_csv = csv_root.joinpath('val.csv')
+        test_csv = csv_root.joinpath('test.csv')
+        
+        if not train_csv.exists():
+            raise FileNotFoundError(f'Training CSV not found: {train_csv}')
+        
+        print(f'Loading training data from {train_csv}...')
+        train_data = pd.read_csv(train_csv)
+        
+        if val_csv.exists():
+            print(f'Loading validation data from {val_csv}...')
+            val_data = pd.read_csv(val_csv)
+        else:
+            print('Validation CSV not found, using portion of training data for validation')
+            val_size = int(len(train_data) * self.val_size)
+            val_data = train_data.iloc[:val_size].copy()
+            train_data = train_data.iloc[val_size:].copy()
+        
+        if test_csv.exists():
+            print(f'Loading test data from {test_csv}...')
+            test_data = pd.read_csv(test_csv)
+        else:
+            print('Test CSV not found, using validation data for testing')
+            test_data = val_data.copy()
+        
+        print(f'Train data shape: {train_data.shape}')
+        print(f'Val data shape: {val_data.shape}')
+        print(f'Test data shape: {test_data.shape}')
+        
+        print(f'Columns in CSV: {train_data.columns.tolist()}')
+        
+        timestamp_col = 'timestamp' if 'timestamp' in train_data.columns else train_data.columns[0]
+        aggregate_col = 'aggregate' if 'aggregate' in train_data.columns else train_data.columns[1]
+        
+        print(f'Timestamp column: {timestamp_col}')
+        print(f'Aggregate column: {aggregate_col}')
+        print(f'Appliance columns: {self.appliance_names}')
+        
+        for appliance in self.appliance_names:
+            if appliance not in train_data.columns:
+                raise ValueError(f'Appliance {appliance} not found in CSV columns')
+        
+        train_data = self._preprocess_csv_data(train_data, timestamp_col, aggregate_col)
+        val_data = self._preprocess_csv_data(val_data, timestamp_col, aggregate_col)
+        test_data = self._preprocess_csv_data(test_data, timestamp_col, aggregate_col)
+        
+        self.train_data = train_data
+        self.val_data = val_data
+        self.test_data = test_data
+        
+        x_train = train_data[aggregate_col].values
+        y_train = train_data[self.appliance_names].values
+        
+        return x_train, y_train
+    
+    def _preprocess_csv_data(self, data, timestamp_col, aggregate_col):
+        data = data.copy()
+        
+        if timestamp_col != 'time':
+            data = data.rename(columns={timestamp_col: 'time'})
+        
+        if aggregate_col != 'aggregate':
+            data = data.rename(columns={aggregate_col: 'aggregate'})
+        
+        if 'time' in data.columns:
+            try:
+                data['time'] = pd.to_datetime(data['time'])
+                data = data.set_index('time')
+            except:
+                print('Warning: Could not parse timestamp column, using index instead')
+        
+        data = data.dropna()
+        data = data[data['aggregate'] > 0]
+        data[data < 5] = 0
+        
+        cutoff_dict = {col: self.cutoff[i] for i, col in enumerate(['aggregate'] + self.appliance_names)}
+        for col in data.columns:
+            if col in cutoff_dict:
+                data[col] = data[col].clip(0, cutoff_dict[col])
+        
+        return data
+    
+    def get_test_data(self):
+        if not hasattr(self, 'test_data'):
+            raise ValueError('Test data not loaded')
+        
+        aggregate_col = 'aggregate' if 'aggregate' in self.test_data.columns else self.test_data.columns[1]
+        x_test = self.test_data[aggregate_col].values
+        y_test = self.test_data[self.appliance_names].values
+        
+        x_test = (x_test - self.x_mean) / self.x_std
+        
+        test_dataset = NILMDataset(x_test, y_test, np.zeros_like(y_test),
+                                   self.window_size, self.window_size)
+        
+        return test_dataset
+
+
 class REDD_LF_Dataset(AbstractDataset):
     @classmethod
     def code(cls):
@@ -269,7 +376,7 @@ class UK_DALE_Dataset(AbstractDataset):
     def load_data(self):
         for appliance in self.appliance_names:
             assert appliance in ['dishwasher', 'fridge',
-                                 'microwave', 'washing_machine', 'kettle']
+                                 'microwave', 'washing_machine', 'kettle', 'air-condition']
 
         for house_id in self.house_indicies:
             assert house_id in [1, 2, 3, 4, 5]
@@ -286,6 +393,7 @@ class UK_DALE_Dataset(AbstractDataset):
             directory = self._get_folder_path()
 
             for house_id in self.house_indicies:
+                print(f'loading house_' + str(house_id) + '...')
                 house_folder = directory.joinpath('house_' + str(house_id))
                 house_label = pd.read_csv(house_folder.joinpath(
                     'labels.dat'), sep=' ', header=None)
@@ -320,6 +428,9 @@ class UK_DALE_Dataset(AbstractDataset):
                     if app_index_dict[appliance][0] == -1:
                         house_data.insert(len(house_data.columns), appliance, np.zeros(len(house_data)))
                     else:
+                        file_path = house_folder.joinpath(
+                            'channel_' + str(app_index_dict[appliance][0]) + '.dat')
+                        print(f'---------loading data from file {file_path}...----------\n')
                         temp_data = pd.read_csv(house_folder.joinpath(
                             'channel_' + str(app_index_dict[appliance][0]) + '.dat'), sep=' ', header=None)
                         temp_data.iloc[:, 0] = pd.to_datetime(
@@ -333,8 +444,6 @@ class UK_DALE_Dataset(AbstractDataset):
 
                 if house_id == self.house_indicies[0]:
                     entire_data = house_data
-                    if len(self.house_indicies) == 1:
-                        entire_data = entire_data.reset_index(drop=True)
                 else:
                     entire_data = entire_data.append(
                         house_data, ignore_index=True)
@@ -344,5 +453,5 @@ class UK_DALE_Dataset(AbstractDataset):
             entire_data[entire_data < 5] = 0
             entire_data = entire_data.clip(
                 [0] * len(entire_data.columns), self.cutoff, axis=1)
-            
+
         return entire_data.values[:, 0], entire_data.values[:, 1:]

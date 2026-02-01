@@ -7,6 +7,7 @@ from model import BERT4NILM
 
 import argparse
 import torch
+import os
 
 
 def train(args, export_root=None, resume=True):
@@ -15,8 +16,13 @@ def train(args, export_root=None, resume=True):
         args.house_indicies = [2, 3, 4, 5, 6]
         dataset = REDD_LF_Dataset(args)
     elif args.dataset_code == 'uk_dale':
-        args.house_indicies = [1, 3, 4, 5]
+        # args.house_indicies = [1, 3, 4, 5]
+        args.house_indicies = [1]
+        # 初始化数据集，调用load_data读取数据，关键数据:x为[1,n]的时间，y是[m,n]的n个电器在对应时间的功率
         dataset = UK_DALE_Dataset(args)
+    elif args.dataset_code == 'csv_dataset':
+        args.house_indicies = [1]
+        dataset = CSV_Dataset(args)
 
     x_mean, x_std = dataset.get_mean_std()
     stats = (x_mean, x_std)
@@ -49,6 +55,15 @@ def train(args, export_root=None, resume=True):
     elif args.dataset_code == 'uk_dale':
         args.house_indicies = [2]
         dataset = UK_DALE_Dataset(args, stats)
+    elif args.dataset_code == 'csv_dataset':
+        test_dataset = dataset.get_test_data()
+        test_loader = NILMDataloader(args, test_dataset, bert=False)._get_loader(test_dataset)
+        rel_err, abs_err, acc, prec, recall, f1 = trainer.test(test_loader)
+        print('Mean Accuracy:', acc)
+        print('Mean F1-Score:', f1)
+        print('Mean Relative Error:', rel_err)
+        print('Mean Absolute Error:', abs_err)
+        return
 
     dataloader = NILMDataloader(args, dataset)
     _, test_loader = dataloader.get_dataloaders()
@@ -70,7 +85,7 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 parser = argparse.ArgumentParser()
 parser.add_argument('--seed', type=int, default=12345)
 parser.add_argument('--dataset_code', type=str,
-                    default='redd_lf', choices=['redd_lf', 'uk_dale'])
+                    default='csv_dataset', choices=['redd_lf', 'uk_dale', 'csv_dataset'])
 parser.add_argument('--validation_size', type=float, default=0.2)
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--house_indicies', type=list, default=[1, 2, 3, 4, 5])
@@ -107,6 +122,7 @@ args = parser.parse_args()
 
 
 if __name__ == "__main__":
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
     fix_random_seed_as(args.seed)
     get_user_input(args)
     set_template(args)
