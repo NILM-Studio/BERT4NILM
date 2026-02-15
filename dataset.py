@@ -1,5 +1,4 @@
 from abc import *
-from config import *
 from dataloader import *
 
 import numpy as np
@@ -11,6 +10,7 @@ import torch.utils.data as data_utils
 
 class AbstractDataset(metaclass=ABCMeta):
     def __init__(self, args, stats=None):
+        self.args = args
         self.house_indicies = args.house_indicies
         self.appliance_names = args.appliance_names
         self.normalize = args.normalize
@@ -137,7 +137,7 @@ class AbstractDataset(metaclass=ABCMeta):
         return train, val
 
     def _get_rawdata_root_path(self):
-        return Path(RAW_DATASET_ROOT_FOLDER)
+        return Path(self.args.raw_dataset_root)
 
     def _get_folder_path(self):
         root = self._get_rawdata_root_path()
@@ -256,9 +256,8 @@ class REDD_LF_Dataset(AbstractDataset):
     def code(cls):
         return 'redd_lf'
 
-    @classmethod
     def _if_data_exists(self):
-        folder = Path(RAW_DATASET_ROOT_FOLDER).joinpath(self.code())
+        folder = Path(self.args.raw_dataset_root).joinpath(self.code())
         first_file = folder.joinpath('house_1', 'channel_1.dat')
         if first_file.is_file():
             return True
@@ -365,9 +364,8 @@ class UK_DALE_Dataset(AbstractDataset):
     def code(cls):
         return 'uk_dale'
 
-    @classmethod
     def _if_data_exists(self):
-        folder = Path(RAW_DATASET_ROOT_FOLDER).joinpath(self.code())
+        folder = Path(self.args.raw_dataset_root).joinpath(self.code())
         first_file = folder.joinpath('house_1', 'channel_1.dat')
         if first_file.is_file():
             return True

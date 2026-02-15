@@ -1,13 +1,13 @@
 from dataset import *
 from dataloader import *
 from trainer import *
-from config import *
 from utils import *
 from model import BERT4NILM
 
 import argparse
 import torch
 import os
+import json
 
 
 def train(args, export_root=None, resume=True):
@@ -117,6 +117,7 @@ parser.add_argument('--decay_step', type=int, default=100)
 parser.add_argument('--gamma', type=float, default=0.1)
 parser.add_argument('--num_epochs', type=int, default=100)
 parser.add_argument('--c0', type=dict, default=None)
+parser.add_argument('--config', type=str, default=None, help='Path to config.json file')
 
 args = parser.parse_args()
 
@@ -124,6 +125,11 @@ args = parser.parse_args()
 if __name__ == "__main__":
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
     fix_random_seed_as(args.seed)
-    get_user_input(args)
+    
+    if args.config is not None:
+        get_user_input(args, args.config)
+    else:
+        get_user_input(args)
+    
     set_template(args)
     train(args)

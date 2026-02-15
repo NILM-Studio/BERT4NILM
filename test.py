@@ -2,7 +2,6 @@ import torch
 from dataset import *
 from dataloader import *
 from trainer import *
-from config import *
 from utils import *
 from model import BERT4NILM
 

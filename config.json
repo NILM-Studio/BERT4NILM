@@ -1,0 +1,51 @@
+{
+  "paths": {
+    "raw_dataset_root": "E:\\datasets\\NILM\\",
+    "experiment_root": "experiments"
+  },
+  "device": "cuda:0",
+  "dataset_code": "csv_dataset",
+  "appliance_names": ["fridge", "microwave", "kettle"],
+  "num_epochs": 100,
+  "batch_size": 128,
+  "window_size": 480,
+  "window_stride": 240,
+  "sampling": "6s",
+  "validation_size": 0.1,
+  "normalize": "mean",
+  "denom": 2000,
+  "drop_out": 0.1,
+  "mask_prob": 0.25,
+  "optimizer": "adam",
+  "lr": 1e-4,
+  "weight_decay": 0.0,
+  "enable_lr_schedule": false,
+  "decay_step": 100,
+  "gamma": 0.1,
+  "cutoff": {
+    "aggregate": 6000,
+    "fridge": 600,
+    "microwave": 2000,
+    "kettle": 3100
+  },
+  "threshold": {
+    "fridge": 50,
+    "microwave": 200,
+    "kettle": 2000
+  },
+  "min_on": {
+    "fridge": 10,
+    "microwave": 2,
+    "kettle": 2
+  },
+  "min_off": {
+    "fridge": 2,
+    "microwave": 5,
+    "kettle": 0
+  },
+  "c0": {
+    "fridge": 1e-6,
+    "microwave": 1.0,
+    "kettle": 1.0
+  }
+}

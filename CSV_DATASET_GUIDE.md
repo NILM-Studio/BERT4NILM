@@ -57,12 +57,18 @@ time,aggregate,fridge,microwave,kettle
 
 ## 二、配置文件设置
 
-### 1. 修改config.py
+### 1. 修改config.json
 
-```python
-# 设置CSV数据集的根目录
-RAW_DATASET_ROOT_FOLDER = 'E:\datasets\NILM'  # 改为你的CSV文件所在目录
+```json
+{
+  "paths": {
+    "raw_dataset_root": "E:\\datasets\\NILM\\",
+    "experiment_root": "experiments"
+  }
+}
 ```
+
+将 `raw_dataset_root` 修改为你的CSV文件所在目录。
 
 ### 2. 数据准备
 
@@ -299,7 +305,7 @@ args.mask_prob = 0.25       # BERT掩码概率
 - [ ] 功率值为非负数
 - [ ] 没有缺失值或已处理缺失值
 - [ ] 电器名称与CSV文件中的列名一致
-- [ ] config.py中的数据路径设置正确
+- [ ] config.json中的数据路径设置正确
 - [ ] cutoff、threshold等参数根据实际情况调整
 
 ## 六、常见问题
@@ -361,7 +367,7 @@ test_result.json包含：
 ## 八、下一步
 
 1. 准备你的CSV数据文件
-2. 修改config.py设置数据路径
+2. 修改config.json设置数据路径
 3. 运行训练脚本
 4. 查看训练结果和模型性能
 5. 根据结果调整参数重新训练
